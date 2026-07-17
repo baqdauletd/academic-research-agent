@@ -20,7 +20,7 @@ def log_query_generation(run_id: str, prompt: str, generated_queries: list[str],
     log_event(
         MonitoringEvent(
             run_id=run_id,
-            event_type=EventType("query_generation"),
+            event_type="query_generation",
             payload={
                 "prompt": prompt,
                 "queries": generated_queries,
