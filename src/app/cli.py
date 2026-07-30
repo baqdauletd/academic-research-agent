@@ -27,4 +27,10 @@ def main() -> None:
 if __name__ == "__main__":
     main()
 
-#starting, query generation, call API, normalization, deduplication, storing in psql, finishing
+#starting, LLM query generation, call API, normalization, deduplication, storing in psql, finishing
+#how to test LLM:
+    #send user prompts to ChatGpt and Gemini chats and tell them to return like this app's LLMs would return
+    #check if everything thas has been returned by LLMs in json-type is correct (filters, keywords, years, exclusions, inclusions, paper types, etc.)
+    #question is - "is LLM categorization correct?"
+
+#add test cases for models, validation and clarification for each of their possible use cases

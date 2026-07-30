@@ -4,7 +4,7 @@ from datetime import date
 from app.search.models import UserSearchPrompt
 
 
-DEFAULT_TARGET_COUNT = 10
+DEFAULT_TARGET_COUNT = 5
 MIN_TARGET_COUNT = 1
 MAX_TARGET_COUNT = 50
 MIN_PUBLICATION_YEAR = 1900

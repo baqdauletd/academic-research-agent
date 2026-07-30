@@ -1,6 +1,7 @@
 """Data shared between search intent parsing, planning, and source adapters."""
 
 from dataclasses import dataclass, field
+from datetime import date
 from enum import Enum
 
 
@@ -29,9 +30,9 @@ class SortPreference(str, Enum):
 class UserSearchPrompt:
     raw_prompt: str
     search_keywords: list[str]
-    target_count: int = 10
+    target_count: int = 5
     year_from: int | None = None
-    year_to: int | None = None
+    year_to: int = field(default_factory=lambda: date.today().year)
     paper_types: list[PaperType] = field(default_factory=list)
     exclusions: list[str] = field(default_factory=list)
     inclusions: list[str] = field(default_factory=list)
