@@ -1,7 +1,8 @@
 from dataclasses import replace
 from datetime import date
+from enum import Enum
 
-from app.search.models import UserSearchPrompt
+from app.search.models import PaperType, SortPreference, SourceName, UserSearchPrompt
 
 
 DEFAULT_TARGET_COUNT = 5
@@ -14,18 +15,48 @@ class SearchValidationError(ValueError):
     """Raised when a parsed search prompt cannot be searched safely."""
 
 
-def _normalize_text_items(items: list[str]) -> list[str]:
+def _normalize_text_items(items: object, field_name: str) -> list[str]:
+    if not isinstance(items, list):
+        raise SearchValidationError(f"{field_name} must be a list of text values.")
+
     normalized_items: list[str] = []
     seen: set[str] = set()
 
     for item in items:
+        if not isinstance(item, str):
+            raise SearchValidationError(f"{field_name} must contain only text values.")
+
         normalized = " ".join(item.split())
         deduplication_key = normalized.casefold()
         if normalized and deduplication_key not in seen:
             seen.add(deduplication_key)
-            normalized_items.append(normalized)
+        normalized_items.append(normalized)
 
     return normalized_items
+
+
+def _validate_enum_items(items: object, enum_type: type[Enum], field_name: str) -> None:
+    if not isinstance(items, list):
+        raise SearchValidationError(f"{field_name} must be a list.")
+    if not all(isinstance(item, enum_type) for item in items):
+        raise SearchValidationError(f"{field_name} contains an unsupported value.")
+
+
+def _validate_enum_value(value: object, enum_type: type[Enum], field_name: str) -> None:
+    if not isinstance(value, enum_type):
+        raise SearchValidationError(f"{field_name} is unsupported.")
+
+
+def _normalize_language(language: object) -> str | None:
+    if language is None:
+        return None
+    if not isinstance(language, str):
+        raise SearchValidationError("language must be a two-letter code.")
+
+    normalized = language.strip().lower()
+    if len(normalized) != 2 or not normalized.isascii() or not normalized.isalpha():
+        raise SearchValidationError("language must be a two-letter code.")
+    return normalized
 
 
 def _validate_year(year: int | None, field_name: str) -> None:
@@ -44,8 +75,13 @@ def _validate_year(year: int | None, field_name: str) -> None:
 def validate_search_prompt(prompt: UserSearchPrompt) -> UserSearchPrompt:
     """Return a normalized prompt or raise SearchValidationError."""
 
+    if not isinstance(prompt, UserSearchPrompt):
+        raise SearchValidationError("Search prompt must be a UserSearchPrompt.")
+    if not isinstance(prompt.raw_prompt, str):
+        raise SearchValidationError("Prompt must be text.")
+
     raw_prompt = " ".join(prompt.raw_prompt.split())
-    keywords = _normalize_text_items(prompt.search_keywords)
+    keywords = _normalize_text_items(prompt.search_keywords, "search_keywords")
 
     if not raw_prompt:
         raise SearchValidationError("Prompt must not be empty.")
@@ -64,8 +100,12 @@ def validate_search_prompt(prompt: UserSearchPrompt) -> UserSearchPrompt:
         if prompt.year_from > prompt.year_to:
             raise SearchValidationError("year_from cannot be later than year_to.")
 
-    inclusions = _normalize_text_items(prompt.inclusions)
-    exclusions = _normalize_text_items(prompt.exclusions)
+    _validate_enum_items(prompt.paper_types, PaperType, "paper_types")
+    _validate_enum_items(prompt.sources, SourceName, "sources")
+    _validate_enum_value(prompt.sort, SortPreference, "sort")
+
+    inclusions = _normalize_text_items(prompt.inclusions, "inclusions")
+    exclusions = _normalize_text_items(prompt.exclusions, "exclusions")
     overlapping_terms = {term.casefold() for term in inclusions} & {
         term.casefold() for term in exclusions
     }
@@ -78,6 +118,7 @@ def validate_search_prompt(prompt: UserSearchPrompt) -> UserSearchPrompt:
         search_keywords=keywords,
         inclusions=inclusions,
         exclusions=exclusions,
-        venues=_normalize_text_items(prompt.venues),
-        authors=_normalize_text_items(prompt.authors),
+        venues=_normalize_text_items(prompt.venues, "venues"),
+        authors=_normalize_text_items(prompt.authors, "authors"),
+        language=_normalize_language(prompt.language),
     )
